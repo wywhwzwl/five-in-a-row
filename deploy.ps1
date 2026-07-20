@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     五子棋项目 GitHub Pages 一键部署脚本
 
@@ -57,6 +57,44 @@ function Write-Info {
     Write-Host "ℹ️  $Message" -ForegroundColor Cyan
 }
 
+# ============== 环境检查 ==============
+function Test-Prerequisites {
+    Write-Info "检查运行环境..."
+
+    # 检查 PowerShell 版本
+    $psVersion = $PSVersionTable.PSVersion
+    if ($psVersion.Major -lt 5) {
+        Write-ErrorMsg "PowerShell 版本过低：$($psVersion.ToString())"
+        Write-ErrorMsg "请升级到 PowerShell 5.0+（Windows 10/11 默认已安装）"
+        exit 1
+    }
+    Write-Success "PowerShell 版本：$($psVersion.ToString())"
+
+    # 检查 Git 是否安装
+    try {
+        $gitVersion = git --version 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            throw "git 命令未找到"
+        }
+        Write-Success "Git 已安装：$gitVersion"
+    }
+    catch {
+        Write-ErrorMsg "Git 未安装或不在 PATH 中"
+        Write-ErrorMsg "请先安装 Git：https://git-scm.com/download/win"
+        exit 2
+    }
+
+    # 检查当前目录是否包含 index.html
+    if (-not (Test-Path -Path "index.html" -PathType Leaf)) {
+        Write-ErrorMsg "当前目录不是项目根目录（未找到 index.html）"
+        Write-ErrorMsg "请在 Five-in-a-Row 项目根目录下运行此脚本"
+        exit 3
+    }
+    Write-Success "项目目录验证通过：$((Get-Location).Path)"
+
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Test-Prerequisites, Initialize-GitRepo, Test-GitConfig,
-# Invoke-GitCommit, Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
+# Initialize-GitRepo, Test-GitConfig, Invoke-GitCommit,
+# Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
