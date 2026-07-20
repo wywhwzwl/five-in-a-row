@@ -161,5 +161,48 @@ function Test-GitConfig {
     return $true
 }
 
+# ============== Git 提交 ==============
+function Invoke-GitCommit {
+    Write-Info "暂存并提交变更..."
+
+    # 添加所有变更
+    git add .
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMsg "git add . 失败"
+        exit 6
+    }
+
+    # 检查是否有变更需要提交
+    $gitStatus = git status --porcelain 2>&1
+    if ([string]::IsNullOrWhiteSpace($gitStatus)) {
+        Write-Success "无变更需要提交（工作区干净）"
+        return $true
+    }
+
+    # 自动生成提交信息
+    $commitMessage = "feat: 初始化五子棋游戏项目"
+
+    # 如果是首次提交（无任何提交历史），使用首次提交信息
+    $commitCount = git rev-list --count HEAD 2>&1
+    if ($LASTEXITCODE -ne 0 -or $commitCount -eq "0") {
+        $commitMessage = "feat: 初始化五子棋游戏项目"
+        Write-Info "检测到首次提交"
+    }
+    else {
+        # 后续提交使用带日期的信息
+        $today = Get-Date -Format "yyyy-MM-dd"
+        $commitMessage = "chore: 部署脚本更新 ($today)"
+    }
+
+    git commit -m $commitMessage
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMsg "git commit 失败"
+        exit 7
+    }
+
+    Write-Success "提交完成：$commitMessage"
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Invoke-GitCommit, Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
+# Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
