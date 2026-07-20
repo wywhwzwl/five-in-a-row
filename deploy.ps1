@@ -123,6 +123,43 @@ function Initialize-GitRepo {
     return $true
 }
 
+# ============== Git 用户配置检查 ==============
+function Test-GitConfig {
+    Write-Info "检查 Git 用户配置..."
+
+    $userName = git config user.name 2>&1
+    $userEmail = git config user.email 2>&1
+
+    # 检查本地配置（如果设置了 --global 也算）
+    if ([string]::IsNullOrWhiteSpace($userName)) {
+        $userName = git config --global user.name 2>&1
+    }
+    if ([string]::IsNullOrWhiteSpace($userEmail)) {
+        $userEmail = git config --global user.email 2>&1
+    }
+
+    # 如果本地和全局都没有配置
+    if ([string]::IsNullOrWhiteSpace($userName) -or [string]::IsNullOrWhiteSpace($userEmail)) {
+        Write-Warning "Git 用户信息未配置"
+
+        $inputName = Read-Host "请输入你的名字（将作为 Git 提交作者）"
+        $inputEmail = Read-Host "请输入你的邮箱"
+
+        if ([string]::IsNullOrWhiteSpace($inputName) -or [string]::IsNullOrWhiteSpace($inputEmail)) {
+            Write-ErrorMsg "名字和邮箱不能为空"
+            exit 5
+        }
+
+        git config user.name "$inputName"
+        git config user.email "$inputEmail"
+        Write-Success "Git 用户信息已配置：$inputName <$inputEmail>"
+    }
+    else {
+        Write-Success "Git 用户信息：$userName <$userEmail>"
+    }
+
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Test-GitConfig, Invoke-GitCommit,
-# Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
+# Invoke-GitCommit, Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
