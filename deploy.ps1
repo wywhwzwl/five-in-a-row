@@ -317,5 +317,75 @@ function Invoke-GitPush {
     return $true
 }
 
-# 占位：后续任务添加更多函数
-# Main
+# ============== 主流程 ==============
+function Main {
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════" -ForegroundColor Magenta
+    Write-Host "   五子棋项目 · GitHub Pages 一键部署" -ForegroundColor Magenta
+    Write-Host "═══════════════════════════════════════════" -ForegroundColor Magenta
+    Write-Host ""
+
+    try {
+        # 阶段 1：环境检查
+        Test-Prerequisites
+        Write-Host ""
+
+        # 阶段 2：Git 仓库初始化
+        Initialize-GitRepo
+        Write-Host ""
+
+        # 阶段 3：Git 用户配置
+        Test-GitConfig
+        Write-Host ""
+
+        # 阶段 4：文件暂存与提交
+        Invoke-GitCommit
+        Write-Host ""
+
+        # 阶段 5：远程仓库配置
+        if (-not (Test-GitRemote)) {
+            Set-GitRemote
+        }
+        Write-Host ""
+
+        # 阶段 6：推送代码
+        Invoke-GitPush
+        Write-Host ""
+
+        # 输出结果
+        Write-Host "═══════════════════════════════════════════" -ForegroundColor Green
+        Write-Success "部署完成！"
+        Write-Host ""
+        Write-Host "🌐 GitHub 仓库：$REPO_URL" -ForegroundColor Cyan
+        Write-Host "📄 GitHub Pages 访问地址（启用 Pages 后生效）：" -ForegroundColor Cyan
+        Write-Host "   $EXPECTED_PAGES_URL" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Warning "下一步：启用 GitHub Pages"
+        Write-Host "  1. 访问：$REPO_URL" -ForegroundColor Cyan
+        Write-Host "  2. 点击 Settings → Pages" -ForegroundColor Cyan
+        Write-Host "  3. Source 选 'Deploy from a branch'" -ForegroundColor Cyan
+        Write-Host "  4. Branch 选 'main' / '/ (root)'" -ForegroundColor Cyan
+        Write-Host "  5. 点击 Save，等待 1-2 分钟后访问上面的 Pages 地址" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "═══════════════════════════════════════════" -ForegroundColor Magenta
+    }
+    catch {
+        Write-ErrorMsg "部署过程中发生错误：$_"
+        exit 99
+    }
+}
+
+# ============== 入口 ==============
+# 仅当脚本被直接执行时运行 Main（被 . 引入时不执行）
+# 使用 guard 变量防止重复执行（先初始化以兼容 StrictMode）
+$Global:FiveInARowDeployGuard = $false
+if (-not $Global:FiveInARowDeployGuard) {
+    $Global:FiveInARowDeployGuard = $true
+    # 检测是否为直接执行（不是 dot-source）
+    # 当直接运行时，$MyInvocation.InvocationName 是脚本名（如 deploy.ps1）
+    # 当 dot-source 时，$MyInvocation.InvocationName 是 . 或 &
+    $invocationName = $MyInvocation.InvocationName
+    if ($invocationName -ne '.' -and $invocationName -ne '&') {
+        Main
+    }
+}
