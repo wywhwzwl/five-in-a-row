@@ -295,6 +295,37 @@ function Invoke-GitPush {
     # 显示 git 输出
     $pushOutput | Out-String | Write-Host
 
+    # 处理 "fetch first" 错误：远程有本地没有的提交
+    # 这种情况通常发生在 GitHub 自动创建仓库时添加了初始 commit（README/LICENSE）
+    if ($pushExitCode -ne 0 -and ($pushOutput -match "fetch first" -or $pushOutput -match "non-fast-forward")) {
+        Write-Warning "远程包含本地没有的提交（可能是 GitHub 自动添加的初始 commit）"
+        Write-Info "尝试拉取并 rebase 远程变更..."
+
+        $pullOutput = git pull origin $DEFAULT_BRANCH --rebase --allow-unrelated-histories 2>&1
+        $pullExitCode = $LASTEXITCODE
+
+        if ($pullExitCode -ne 0) {
+            Write-ErrorMsg "git pull 失败"
+            $pullOutput | Out-String | Write-Host
+            Write-ErrorMsg "可能存在冲突，请手动处理："
+            Write-ErrorMsg "  git pull origin main --rebase --allow-unrelated-histories"
+            exit 9
+        }
+
+        Write-Success "已合并远程变更，重新推送..."
+
+        # 重新尝试推送
+        $ErrorActionPreference = 'Continue'
+        try {
+            $pushOutput = git push -u origin $DEFAULT_BRANCH 2>&1
+        }
+        finally {
+            $ErrorActionPreference = $oldErrorPreference
+        }
+        $pushExitCode = $LASTEXITCODE
+        $pushOutput | Out-String | Write-Host
+    }
+
     if ($pushExitCode -ne 0) {
         Write-ErrorMsg "git push 失败"
         Write-ErrorMsg ""
