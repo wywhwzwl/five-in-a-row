@@ -809,6 +809,98 @@ git push
 
 ---
 
+## 🚀 一键部署脚本（deploy.ps1）
+
+除了按文档逐步执行，本项目还提供了 PowerShell 一键部署脚本，可自动完成 Git 初始化、提交、推送全流程。
+
+### 使用方法
+
+```powershell
+# 进入项目根目录
+cd f:\VSCode_Projects\Cases\Five-in-a-Row
+
+# 执行部署脚本
+.\deploy.ps1
+```
+
+### 脚本会自动完成的步骤
+
+| # | 步骤 | 说明 |
+|---|------|------|
+| 1 | 环境检查 | 验证 PowerShell 版本和 Git 安装 |
+| 2 | Git 仓库初始化 | 如未初始化则自动 `git init` |
+| 3 | Git 用户配置 | 如未配置则交互式询问 |
+| 4 | 文件暂存与提交 | 自动生成提交信息 |
+| 5 | 远程仓库配置 | 自动添加 `https://github.com/wywhwzwl/five-in-a-row.git` |
+| 6 | 代码推送 | 首次推送时输入 PAT，后续自动使用缓存 |
+
+### 首次运行提示
+
+首次运行时会要求输入 GitHub 用户名和 PAT：
+
+```
+Username for 'https://github.com': <输入你的 GitHub 用户名>
+Password for 'https://github.com': <粘贴你的 PAT，不是登录密码>
+```
+
+输入完成后，PAT 会自动通过 Windows 凭据管理器缓存，**后续推送无需重复输入**。
+
+### 错误处理
+
+脚本内置 9 种错误场景的友好提示，包括：
+- PowerShell 版本过低
+- Git 未安装
+- 不在项目根目录
+- PAT 无效或过期（附重新生成链接）
+- 远程仓库不存在（附创建链接）
+- 网络问题
+
+### 后续更新
+
+代码变更后，只需再次运行：
+
+```powershell
+.\deploy.ps1
+```
+
+脚本会智能识别已初始化状态，仅执行必要步骤。
+
+### 跨平台支持
+
+虽然 `deploy.ps1` 专为 Windows 设计，但脚本中的 Git 命令是跨平台的。如需在 Linux/Mac 上使用，可以将 PowerShell 命令翻译为 Bash：
+- 函数 → function
+- `if (...)` → `if [...]`
+- `Write-Host` → `echo`
+- `Test-Path` → `test -e`
+
+或者参考本文件「绑定自定义域名」之前的手动步骤执行。
+
+### 脚本函数清单
+
+| 函数 | 职责 |
+|------|------|
+| `Test-Prerequisites` | 检查 PowerShell 版本、Git 安装、项目目录 |
+| `Initialize-GitRepo` | 初始化 Git 仓库（如未初始化） |
+| `Test-GitConfig` | 检查并配置 Git 用户信息 |
+| `Invoke-GitCommit` | 暂存并提交所有变更 |
+| `Test-GitRemote` | 检查远程仓库配置 |
+| `Set-GitRemote` | 添加或更新远程仓库 |
+| `Invoke-GitPush` | 推送代码到 GitHub |
+| `Main` | 编排 6 个阶段的主流程 |
+
+### 执行策略调整
+
+由于 Windows PowerShell 5.1 与 PowerShell 7 的差异，脚本做了以下处理：
+
+| 场景 | 处理 |
+|------|------|
+| UTF-8 中文乱码 | deploy.ps1 必须以 UTF-8 **带 BOM** 编码保存 |
+| `$LASTEXITCODE` 失效 | git push 不使用管道，直接捕获输出 |
+| `$ErrorActionPreference = 'Stop'` 导致异常 | 临时改为 Continue 再恢复 |
+| StrictMode 严格模式 | 全局变量先初始化再判断 |
+
+---
+
 ## 🎉 部署完成
 
 完成所有 Checklist 后，你就拥有了一个：
