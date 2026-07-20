@@ -204,5 +204,60 @@ function Invoke-GitCommit {
     return $true
 }
 
+# ============== Git 远程仓库管理 ==============
+function Test-GitRemote {
+    Write-Info "检查远程仓库配置..."
+
+    $remoteUrl = git config --get remote.origin.url 2>&1
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "未配置 origin 远程仓库"
+        return $false
+    }
+
+    if ($remoteUrl -eq $REPO_URL) {
+        Write-Success "远程仓库已正确配置：$remoteUrl"
+        return $true
+    }
+
+    Write-Warning "远程仓库 URL 不匹配"
+    Write-Warning "  当前：$remoteUrl"
+    Write-Warning "  期望：$REPO_URL"
+    return $false
+}
+
+function Set-GitRemote {
+    Write-Info "配置远程仓库..."
+
+    # 检查 origin 是否已存在
+    $existingUrl = git config --get remote.origin.url 2>&1
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($existingUrl)) {
+        # origin 已存在，使用 set-url 更新
+        Write-Warning "远程 origin 已存在，正在更新 URL..."
+        Write-Warning "  旧：$existingUrl"
+        Write-Warning "  新：$REPO_URL"
+        git remote set-url origin $REPO_URL
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorMsg "git remote set-url origin 失败"
+            exit 8
+        }
+        Write-Success "远程仓库 URL 已更新：$REPO_URL"
+        return $true
+    }
+
+    # origin 不存在，添加新的
+    git remote add origin $REPO_URL
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMsg "git remote add origin 失败"
+        Write-ErrorMsg "请检查："
+        Write-ErrorMsg "  1. GitHub 仓库是否已创建：https://github.com/$GITHUB_USERNAME/$REPO_NAME"
+        Write-ErrorMsg "  2. 仓库名是否正确：$REPO_NAME"
+        exit 8
+    }
+
+    Write-Success "远程仓库已配置：$REPO_URL"
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
+# Invoke-GitPush, Main
