@@ -259,5 +259,63 @@ function Set-GitRemote {
     return $true
 }
 
+# ============== Git 推送 ==============
+function Invoke-GitPush {
+    Write-Info "推送代码到 GitHub..."
+
+    # 确保 credential helper 已配置（Windows）
+    $credHelper = git config --global credential.helper 2>&1
+    if ([string]::IsNullOrWhiteSpace($credHelper)) {
+        Write-Info "配置 Git 凭据管理器（用于缓存 PAT）..."
+        git config --global credential.helper manager
+        Write-Success "凭据管理器已配置"
+    }
+
+    # 推送代码（首次推送使用 -u 设置上游）
+    $branchList = git branch 2>&1
+    $pushOutput = ""
+    # 临时将 ErrorActionPreference 设为 Continue 以避免 git 错误抛出
+    $oldErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        if ($branchList -match "\*\s+$DEFAULT_BRANCH") {
+            # 默认分支已存在，使用 -u
+            $pushOutput = git push -u origin $DEFAULT_BRANCH 2>&1
+        }
+        else {
+            # 推送所有分支
+            $pushOutput = git push -u origin --all 2>&1
+        }
+    }
+    finally {
+        $ErrorActionPreference = $oldErrorPreference
+    }
+    $pushExitCode = $LASTEXITCODE
+
+    # 显示 git 输出
+    $pushOutput | Out-String | Write-Host
+
+    if ($pushExitCode -ne 0) {
+        Write-ErrorMsg "git push 失败"
+        Write-ErrorMsg ""
+        Write-ErrorMsg "常见原因及解决方案："
+        Write-ErrorMsg "1. PAT 无效或过期"
+        Write-ErrorMsg "   → 重新生成 PAT: https://github.com/settings/tokens?type=beta"
+        Write-ErrorMsg "   → 权限要求：Contents (Read and write)"
+        Write-ErrorMsg ""
+        Write-ErrorMsg "2. GitHub 仓库不存在"
+        Write-ErrorMsg "   → 创建仓库: https://github.com/new"
+        Write-ErrorMsg "   → 仓库名必须是: $REPO_NAME"
+        Write-ErrorMsg "   → 必须是 Public（GitHub Pages 限制）"
+        Write-ErrorMsg ""
+        Write-ErrorMsg "3. 网络问题"
+        Write-ErrorMsg "   → 检查网络连接和代理设置"
+        exit 9
+    }
+
+    Write-Success "代码已成功推送到 GitHub"
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Invoke-GitPush, Main
+# Main
