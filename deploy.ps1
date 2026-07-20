@@ -95,6 +95,34 @@ function Test-Prerequisites {
     return $true
 }
 
+# ============== Git 仓库初始化 ==============
+function Initialize-GitRepo {
+    Write-Info "检查 Git 仓库状态..."
+
+    # 检查是否已经是 Git 仓库
+    if (Test-Path -Path ".git" -PathType Container) {
+        Write-Success "Git 仓库已存在（跳过初始化）"
+        return $true
+    }
+
+    Write-Info "初始化 Git 仓库..."
+    git init
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMsg "git init 失败"
+        exit 4
+    }
+    Write-Success "Git 仓库初始化完成"
+
+    # 重命名分支为 main（如果当前是 master）
+    $currentBranch = git branch --show-current 2>&1
+    if ($currentBranch -eq "master") {
+        git branch -M main
+        Write-Success "默认分支已重命名为 main"
+    }
+
+    return $true
+}
+
 # 占位：后续任务添加更多函数
-# Initialize-GitRepo, Test-GitConfig, Invoke-GitCommit,
+# Test-GitConfig, Invoke-GitCommit,
 # Test-GitRemote, Set-GitRemote, Invoke-GitPush, Main
