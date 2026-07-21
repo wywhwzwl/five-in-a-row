@@ -713,10 +713,11 @@ git push -u origin main
 
 > 修复时间：2026-07-21
 > 修复目的：避免真实邮箱在 GitHub 公开仓库中暴露
+> **本文档已脱敏处理，不展示真实邮箱**
 
 ### 问题
 
-初次部署时，本地 Git 配置使用了真实邮箱 `wudaoguo@126.com`，导致：
+初次部署时，本地 Git 配置使用了真实个人邮箱（`<真实邮箱>`），导致：
 
 1. **12 个 commit 的 author 邮箱**是真实邮箱
 2. **`DEPLOYMENT_JOURNEY.md` 中 3 处**显示真实邮箱
@@ -729,7 +730,7 @@ git push -u origin main
 采用 GitHub 官方推荐的 **noreply 邮箱** 方案：
 
 ```
-原邮箱: wudaoguo@126.com
+原邮箱: <真实邮箱>（已脱敏）
 新邮箱: 110873990+wywhwzwl@users.noreply.github.com
 ```
 
@@ -749,10 +750,10 @@ git tag backup-before-rewrite
 
 # 重写所有 commit 的 author 和 committer 邮箱
 git filter-branch -f --env-filter '
-if [ "$GIT_COMMITTER_EMAIL" = "wudaoguo@126.com" ]; then
+if [ "$GIT_COMMITTER_EMAIL" = "<真实邮箱>" ]; then
     export GIT_COMMITTER_EMAIL="110873990+wywhwzwl@users.noreply.github.com"
 fi
-if [ "$GIT_AUTHOR_EMAIL" = "wudaoguo@126.com" ]; then
+if [ "$GIT_AUTHOR_EMAIL" = "<真实邮箱>" ]; then
     export GIT_AUTHOR_EMAIL="110873990+wywhwzwl@users.noreply.github.com"
 fi
 ' HEAD
@@ -766,9 +767,9 @@ fi
 
 | 位置 | 修改前 | 修改后 |
 |------|--------|--------|
-| Line 51 | `wudaoguo@126.com` | `110873990+wywhwzwl@users.noreply.github.com` |
-| Line 137 | `wywhwzwl <wudaoguo@126.com>` | `wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>` |
-| Line 210 | `git config user.email "wudaoguo@126.com"` | `git config user.email "110873990+wywhwzwl@users.noreply.github.com"` |
+| Line 51 | `<真实邮箱>` | `110873990+wywhwzwl@users.noreply.github.com` |
+| Line 137 | `wywhwzwl <<真实邮箱>>` | `wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>` |
+| Line 210 | `git config user.email "<真实邮箱>"` | `git config user.email "110873990+wywhwzwl@users.noreply.github.com"` |
 
 #### 4. 提交并强制推送
 
@@ -798,9 +799,9 @@ git gc --prune=now --aggressive
 
 ```
 $ git log --pretty=format:"%h | %an <%ae>" -13
-b972c8d | wywhwzwl <wudaoguo@126.com>
-f97fc66 | wywhwzwl <wudaoguo@126.com>
-5c84f3e | wywhwzwl <wudaoguo@126.com>
+b972c8d | wywhwzwl <<真实邮箱>>
+f97fc66 | wywhwzwl <<真实邮箱>>
+5c84f3e | wywhwzwl <<真实邮箱>>
 ... (12 个 commit 全部是真实邮箱)
 ```
 
@@ -817,13 +818,10 @@ cbfe859 | wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>
 #### 文件扫描
 
 ```bash
-$ grep -r "wudaoguo@126.com" . --exclude-dir=.git
+$ grep -r "<真实邮箱>" . --exclude-dir=.git
 # 无输出
 
-$ grep -r "wudaoguo" . --exclude-dir=.git
-# 无输出
-
-$ grep -r "@126.com" . --exclude-dir=.git
+$ grep -r "<真实邮箱域名>" . --exclude-dir=.git
 # 无输出
 ```
 
@@ -856,9 +854,10 @@ HTTP Status: 200
 
 1. **首次使用 Git 之前应配置 noreply 邮箱**
 2. **开源项目优先使用 noreply 邮箱**
-3. **在文档中避免重复显示个人邮箱**
+3. **在文档中避免重复显示个人邮箱**（即使已修复也不再展示）
 4. **每次 `git push` 前用 `git log` 检查 author 信息**
 5. **可使用 pre-commit hook 自动检测邮箱泄露**
+6. **记录修复过程时也要脱敏**，避免"修复"反而"重新泄露"
 
 ### 推荐：pre-commit hook
 
@@ -866,8 +865,8 @@ HTTP Status: 200
 
 ```bash
 #!/bin/bash
-# 检测常见隐私泄露模式
-if git diff --cached | grep -iE "(wudaoguo@126\.com|@126\.com|真实邮箱)"; then
+# 检测常见隐私泄露模式（包含真实域名）
+if git diff --cached | grep -iE "(@<真实邮箱域名>|真实邮箱)"; then
     echo "❌ 检测到可能的隐私泄露，提交被拒绝！"
     exit 1
 fi
