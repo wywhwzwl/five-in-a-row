@@ -709,6 +709,172 @@ git push -u origin main
 
 ---
 
+## 附录 C：隐私保护修复记录
+
+> 修复时间：2026-07-21
+> 修复目的：避免真实邮箱在 GitHub 公开仓库中暴露
+
+### 问题
+
+初次部署时，本地 Git 配置使用了真实邮箱 `wudaoguo@126.com`，导致：
+
+1. **12 个 commit 的 author 邮箱**是真实邮箱
+2. **`DEPLOYMENT_JOURNEY.md` 中 3 处**显示真实邮箱
+3. **GitHub 公开仓库**永久展示这些信息
+4. **搜索引擎**（Google/Bing）可索引真实邮箱
+5. **垃圾邮件**风险增加
+
+### 修复方案
+
+采用 GitHub 官方推荐的 **noreply 邮箱** 方案：
+
+```
+原邮箱: wudaoguo@126.com
+新邮箱: 110873990+wywhwzwl@users.noreply.github.com
+```
+
+### 执行步骤
+
+#### 1. 修改本地 Git 配置
+
+```bash
+git config user.email "110873990+wywhwzwl@users.noreply.github.com"
+```
+
+#### 2. 重写历史 commit（git filter-branch）
+
+```bash
+# 备份当前状态
+git tag backup-before-rewrite
+
+# 重写所有 commit 的 author 和 committer 邮箱
+git filter-branch -f --env-filter '
+if [ "$GIT_COMMITTER_EMAIL" = "wudaoguo@126.com" ]; then
+    export GIT_COMMITTER_EMAIL="110873990+wywhwzwl@users.noreply.github.com"
+fi
+if [ "$GIT_AUTHOR_EMAIL" = "wudaoguo@126.com" ]; then
+    export GIT_AUTHOR_EMAIL="110873990+wywhwzwl@users.noreply.github.com"
+fi
+' HEAD
+```
+
+**结果**：13 个 commit 的 author/committer 邮箱全部改为 noreply。
+
+#### 3. 更新文档中的邮箱引用
+
+将 `DEPLOYMENT_JOURNEY.md` 中 3 处邮箱替换：
+
+| 位置 | 修改前 | 修改后 |
+|------|--------|--------|
+| Line 51 | `wudaoguo@126.com` | `110873990+wywhwzwl@users.noreply.github.com` |
+| Line 137 | `wywhwzwl <wudaoguo@126.com>` | `wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>` |
+| Line 210 | `git config user.email "wudaoguo@126.com"` | `git config user.email "110873990+wywhwzwl@users.noreply.github.com"` |
+
+#### 4. 提交并强制推送
+
+```bash
+git add DEPLOYMENT_JOURNEY.md
+git commit -m "docs: 改用 GitHub noreply 邮箱保护隐私"
+git push --force-with-lease origin main
+```
+
+#### 5. 清理本地备份
+
+```bash
+# 删除 filter-branch 自动创建的原始备份
+git update-ref -d refs/original/refs/heads/main
+
+# 删除手动创建的备份标签
+git tag -d backup-before-rewrite
+
+# 清理 reflog 和孤立对象
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+```
+
+### 验证结果
+
+#### 修改前
+
+```
+$ git log --pretty=format:"%h | %an <%ae>" -13
+b972c8d | wywhwzwl <wudaoguo@126.com>
+f97fc66 | wywhwzwl <wudaoguo@126.com>
+5c84f3e | wywhwzwl <wudaoguo@126.com>
+... (12 个 commit 全部是真实邮箱)
+```
+
+#### 修改后
+
+```
+$ git log --pretty=format:"%h | %an <%ae>" -13
+3a2e8da | wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>
+52227b0 | wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>
+cbfe859 | wywhwzwl <110873990+wywhwzwl@users.noreply.github.com>
+... (13 个 commit 全部是 noreply)
+```
+
+#### 文件扫描
+
+```bash
+$ grep -r "wudaoguo@126.com" . --exclude-dir=.git
+# 无输出
+
+$ grep -r "wudaoguo" . --exclude-dir=.git
+# 无输出
+
+$ grep -r "@126.com" . --exclude-dir=.git
+# 无输出
+```
+
+#### 远程同步
+
+```
+$ git push --force-with-lease origin main
+To https://github.com/wywhwzwl/five-in-a-row.git
+ + f97fc66...3a2e8da main -> main (forced update)
+```
+
+#### GitHub Pages 仍然可访问
+
+```
+$ curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" https://wywhwzwl.github.io/five-in-a-row/
+HTTP Status: 200
+```
+
+### GitHub noreply 邮箱优势
+
+| 优势 | 说明 |
+|------|------|
+| ✅ **真实邮箱隐藏** | 公开仓库不再显示真实邮箱 |
+| ✅ **GitHub 通知正常** | noreply 邮箱自动转发到真实邮箱 |
+| ✅ **贡献图正常** | 头像和贡献统计不受影响 |
+| ✅ **防垃圾邮件** | 真实邮箱不暴露给爬虫 |
+| ✅ **官方推荐** | GitHub 隐私保护最佳实践 |
+
+### 经验教训
+
+1. **首次使用 Git 之前应配置 noreply 邮箱**
+2. **开源项目优先使用 noreply 邮箱**
+3. **在文档中避免重复显示个人邮箱**
+4. **每次 `git push` 前用 `git log` 检查 author 信息**
+5. **可使用 pre-commit hook 自动检测邮箱泄露**
+
+### 推荐：pre-commit hook
+
+在 `.git/hooks/pre-commit` 添加：
+
+```bash
+#!/bin/bash
+# 检测常见隐私泄露模式
+if git diff --cached | grep -iE "(wudaoguo@126\.com|@126\.com|真实邮箱)"; then
+    echo "❌ 检测到可能的隐私泄露，提交被拒绝！"
+    exit 1
+fi
+```
+
+---
+
 ## 附录 B：参考资源
 
 - 📘 [GitHub Pages 官方文档](https://docs.github.com/en/pages)
