@@ -48,7 +48,7 @@
 | 项目 | 值 |
 |------|---|
 | Git 用户名 | `wywhwzwl` |
-| Git 邮箱 | `wudaoguo@126.com` |
+| Git 邮箱 | `110873990+wywhwzwl@users.noreply.github.com`（GitHub 隐私邮箱） |
 
 ---
 
@@ -134,7 +134,7 @@ npx skills add garrytan/gstack -g -y
 | 脚本类型 | PowerShell（对比 Bash/Batch） |
 | 自定义域名 | ❌ 暂不需要（使用 GitHub 默认域名） |
 | 执行方式 | 一键脚本（对比全手动） |
-| Git 身份 | wywhwzwl `<wudaoguo@126.com>` |
+| Git 身份 | wywhwzwl `<110873990+wywhwzwl@users.noreply.github.com>` |
 
 ---
 
@@ -207,7 +207,7 @@ deploy.ps1
 cd f:\VSCode_Projects\Cases\Five-in-a-Row
 git init
 git config user.name "wywhwzwl"
-git config user.email "wudaoguo@126.com"
+git config user.email "110873990+wywhwzwl@users.noreply.github.com"
 git branch -M main
 git config core.autocrlf false
 
